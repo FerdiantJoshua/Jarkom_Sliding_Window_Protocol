@@ -1,16 +1,12 @@
-#ifndef ACK_H
-#define ACK_H
+#pragma once
 
 #include <cstdint>
 
-class Ack {
-	private:
-		uint8_t ack;
-		uint32_t nextSeqNum;
-		uint8_t checksum;
+struct Ack {
+	uint8_t ack;
+	uint32_t nextSeqNum;
+	uint8_t checksum;
 
-	public:
-		bool compare() const;
+	Ack(uint8_t ack, uint32_t nextSeqNum);
+	bool validate() const;
 };
-
-#endif
