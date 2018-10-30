@@ -4,3 +4,5 @@ client
 server
 receiver
 sender
+test/
+*.exec
