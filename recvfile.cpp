@@ -10,9 +10,9 @@
 using namespace std;
 
 int main (int argc, char const *argv[]) {
-    struct sockaddr_in address;
-    struct sockaddr_in sender_address;
-    socklen_t addrlen = sizeof(sender_address);
+    struct sockaddr_in myAddress;
+    struct sockaddr_in remoteAddress;
+    socklen_t addrlen = sizeof(remoteAddress);
     int recvlen;
     int fd = 0;
 
@@ -25,26 +25,48 @@ int main (int argc, char const *argv[]) {
     }
 
     //Bind socket to any IP and a port
-    memset((char *) &address, '0', sizeof(address));
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = htonl(INADDR_ANY); //INADDR_ANY = 0.0.0.0 = any available IP address
-    address.sin_port = htons(PORT);
+    memset((char *) &myAddress, '0', sizeof(myAddress));
+    myAddress.sin_family = AF_INET;
+    myAddress.sin_addr.s_addr = htonl(INADDR_ANY); //INADDR_ANY = 0.0.0.0 = any available IP address
+    myAddress.sin_port = htons(PORT);
 
-    if (bind(fd, (struct sockaddr *) &address, sizeof(address)) < 0 ) {
+    if (bind(fd, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0 ) {
         cout << "Bind error" << endl;
         return -1;
     }
 
     //Loop for listening
+    int buffIdx = 0;
+    int ackSeq = 0;
     while (true) {
-        cout << "Waiting on port : " << PORT << endl;
-        recvlen = recvfrom(fd, &buffer[0], sizeof(Packet), 0, (struct sockaddr*) &address, &addrlen);
-        cout << "received " << recvlen << " bytes with packet-detail :" << endl;
+        cout << "Waiting on port : " << PORT << ". Current bufferIdx : " << buffIdx << endl;
+        recvlen = recvfrom(fd, &buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
+        cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {
-            // buffer[recvlen] = NULL;
-            buffer[0].Print();
+            // buffer[buffIdx].Print();
+            
+            //Send ACK if package is valid, and NAK if not
+            //Ack(1, x) if valid
+            //Ack(0, x) if invalid
+            if (buffer[buffIdx].validate()) {
+                cout << "Package valid, sending ACK " << ackSeq << endl;
+                if (sendto(fd, new Ack(1, ackSeq), sizeof(Packet), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                    cout << "Send ACK failed" << endl;
+                }
+            } else {
+                cout << "Package invalid, sending NAK " << ackSeq << endl;
+                if (sendto(fd, new Ack(0, ackSeq), sizeof(Packet), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                    cout << "Send NAK failed" << endl;
+                }
+            }
+
+            ackSeq++;
+            buffIdx++;
         }
+
     }
 
     return 0;
 }
+
+// g++ recvfile.cpp Packet.cpp Ack.cpp -o receiver
