@@ -7,9 +7,6 @@
 #include <iostream>
 #include <string.h>
 
-#define BUFFER_SIZE 1024
-#define PORT 21234
-
 using namespace std;
 
 int main (int argc, char const *argv[]) {
