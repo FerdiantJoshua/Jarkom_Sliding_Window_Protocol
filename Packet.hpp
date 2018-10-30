@@ -6,7 +6,7 @@
 
 class Packet {
 	private:
-		uint8_t soh = (0x1);
+		uint8_t soh = SOH;
 		uint32_t seqNum = 0;
 		uint32_t dataLength = 0;
 		uint8_t data = 0;
