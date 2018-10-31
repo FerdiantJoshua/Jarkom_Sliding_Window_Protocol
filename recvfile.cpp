@@ -42,7 +42,7 @@ int main (int argc, char const *argv[]) {
         cout << "Waiting on port : " << PORT << ". Current bufferIdx : " << buffIdx << endl;
         recvlen = recvfrom(fd, &buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
-        if (recvlen > 0 ) {
+        if (recvlen > 0) {
             // buffer[buffIdx].Print();
             
             //Send ACK if package is valid, and NAK if not

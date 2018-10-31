@@ -56,8 +56,18 @@ int main(int argc, char const *argv[]) {
         int lowestBuffIdx = 0;
         clock_t thisTime = clock();
         clock_t lastTime = thisTime;
+
         while (true) {
             thisTime = clock();
+            clock_t timer[WINDOW_SIZE]={0};
+            for (int i=lowestBuffIdx; i < lowestBuffIdx + WINDOW_SIZE; i++){
+                if (TIME_OUT < thisTime - timer[i]) {
+                    timer[i] = thisTime;
+                    if (sendto(fd, &buffer[lowestBuffIdx + i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                        cout << "Send packet failed" << endl;
+                    }
+                }
+            }
 
             //Send packet 1/second
             if (((thisTime - lastTime) >= 1000 * 1000) && (buffIdx < lowestBuffIdx + WINDOW_SIZE)) {
