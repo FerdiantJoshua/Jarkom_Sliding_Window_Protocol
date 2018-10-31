@@ -19,6 +19,9 @@ class Packet {
 		Packet(const Packet& _packet);
 		~Packet();
 		Packet& operator=(const Packet& _packet);
-		void Print() const;
+
+		uint32_t getSeqNum() const;
+
+		void print() const;
 		bool validate() const;
 };
