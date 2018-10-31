@@ -3,6 +3,12 @@
 #include <iostream>
 using namespace std;
 
+Ack::Ack() {
+	this->ack = 0;
+	this->nextSeqNum = 0;
+	this->checksum = 0;
+}
+
 Ack::Ack(uint8_t ack, uint32_t nextSeqNum) {
 	uint8_t _checksum;
 	this->ack = ack;
