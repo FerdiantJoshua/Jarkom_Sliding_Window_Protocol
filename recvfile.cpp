@@ -50,12 +50,12 @@ int main (int argc, char const *argv[]) {
             //Ack(0, x) if invalid
             if (buffer[buffIdx].validate()) {
                 cout << "Package valid, sending ACK " << ackSeq << endl;
-                if (sendto(fd, new Ack(1, ackSeq), sizeof(Packet), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                if (sendto(fd, new Ack(1, ackSeq), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "Send ACK failed" << endl;
                 }
             } else {
                 cout << "Package invalid, sending NAK " << ackSeq << endl;
-                if (sendto(fd, new Ack(0, ackSeq), sizeof(Packet), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                if (sendto(fd, new Ack(0, ackSeq), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "Send NAK failed" << endl;
                 }
             }

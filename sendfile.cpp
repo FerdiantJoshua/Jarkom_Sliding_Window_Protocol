@@ -5,24 +5,32 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <ctime>
 #include <iostream>
+#include <thread>
 #include <string.h>
 
 using namespace std;
 
 int main(int argc, char const *argv[]) {
-    int fd = 0;
     char *server = "127.0.0.1";
-    struct sockaddr_in server_address, address;
+    struct sockaddr_in myAddress;
+    struct sockaddr_in remoteAddress;
+    socklen_t addrlen = sizeof(remoteAddress);
+    int recvlen = 0;
+    int fd = 0;
 
-    Packet *buffer = (Packet*) malloc(BUFFER_SIZE * sizeof(Packet));
+    Packet buffer[1024];
+    Ack *bufferAck;
+    bool receivedACK[BUFFER_SIZE] = {};
     
     //Testing and filling 5 first packets
-    for (int i=0; i<5; i++) {
-        buffer[i] = Packet(i, 0,0);
+    for (uint8_t i=0; i<5; i++) {
+        // cout << "Packet " << int(i) << endl;
+        buffer[i] = Packet(i, 0, 0);
+        // cout << buffer[i].validate() << endl;
+        // buffer[i].Print();
     }
-
-    // buffer[0].Print();
 
     //Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) <= 0) {
@@ -31,24 +39,66 @@ int main(int argc, char const *argv[]) {
     }
 
     //Bind socket to any IP and a port
-    memset((char *)&server_address, '0', sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY; //INADDR_ANY = 0.0.0.0 = any available IP address
-    server_address.sin_port = htons(PORT);
+    memset((char *)&myAddress, '0', sizeof(myAddress));
+    myAddress.sin_family = AF_INET;
+    myAddress.sin_addr.s_addr = INADDR_ANY; //INADDR_ANY = 0.0.0.0 = any available IP address
+    myAddress.sin_port = htons(PORT);
 
-    //Convert host address to binary format, and store it in server_address 
-    if ((inet_aton(server, &server_address.sin_addr)) < 0) {
+    //Convert host address to binary format, and store it in myAddress 
+    if ((inet_aton(server, &myAddress.sin_addr)) < 0) {
         cout << "inet_aton error" << endl;
         return -1;
     }
 
-    for (int i=0; i<5; i++) {
-        cout << "Sending packet " << i << endl;
-        if (sendto(fd, &buffer[i], sizeof(Packet), 0, (struct sockaddr *) &server_address, sizeof(server_address)) < 0) {
-            cout << "Sendto failed" << endl;
-            return -1;
+    //Loop for sending
+    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress) {
+        int buffIdx = 0;
+        int lowestBuffIdx = 0;
+        clock_t thisTime = clock();
+        clock_t lastTime = thisTime;
+        while (true) {
+            thisTime = clock();
+
+            //Send packet 1/second
+            if (((thisTime - lastTime) >= 1000 * 1000) && (buffIdx < lowestBuffIdx + WINDOW_SIZE)) {
+                cout << "Sending packet " << buffIdx << endl;
+                if (sendto(fd, &buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    cout << "Send packet failed" << endl;
+                }
+                buffIdx++;
+                lastTime = thisTime;
+            }
+        }
+    }), ref(fd), ref(buffer), ref(myAddress));
+
+    //Listen from receiver for ACK
+    while (true) {
+        recvlen = recvfrom(fd, &bufferAck[0], sizeof(Ack), 0, (struct sockaddr*) &remoteAddress, &addrlen);
+        cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
+        if (recvlen > 0 ) {
+            // buffer[buffIdx].Print();
+            
+            //Resend package for the corresponding NAK received
+            //Ack(1, x) is normal ACK
+            //Ack(0, x) is NAK
+            if (bufferAck[0].validate()) {
+                cout << "ACK " << bufferAck[0].nextSeqNum << " valid, checking ACK type " << endl;
+                //Resend packet if received ACK is an NAK
+                if (bufferAck[0].ack == 0) {
+                    cout << "NAK detected, resending package " << bufferAck[0].nextSeqNum << endl;
+                    if (sendto(fd, &buffer[bufferAck[0].nextSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                        cout << "Send packet failed" << endl;
+                    }
+                //Else no problem
+                } else {
+                    cout << "ACK detected, finish with package " << bufferAck[0].nextSeqNum << endl;
+                    receivedACK[bufferAck[0].nextSeqNum] = true;
+                }
+            }
         }
     }
 
     return 0;
 }
+
+// g++ sendfile.cpp Packet.cpp Ack.cpp -o sender -lpthread
