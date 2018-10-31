@@ -17,7 +17,7 @@ Packet::Packet(uint32_t seqNum, uint32_t dataLength, uint8_t data) {
 	this->seqNum = seqNum;
 	this->dataLength = dataLength;
 	this->data = data;
-	_checksum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0);
+	_checksum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0) ^ (0xFF);
 	// cout << int(_checksum) << endl;
 	this->checksum = _checksum;
 }
@@ -44,12 +44,16 @@ Packet& Packet::operator=(const Packet& _packet) {
 
 bool Packet::validate() const{
 	uint8_t sum;
-	sum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0);
+	sum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0) ^ (0xFF);
 	// cout << int(sum) << endl;
 	return checksum == sum;
 }
 
-void Packet::Print() const {
+uint32_t Packet::getSeqNum() const {
+	return this->seqNum;
+}
+
+void Packet::print() const {
 	cout << "soh : " << int(this->soh) << endl;
 	cout << "seqNum : " << int(this->seqNum) << endl;
 	cout << "dataLength : " << int(this->dataLength) << endl;
