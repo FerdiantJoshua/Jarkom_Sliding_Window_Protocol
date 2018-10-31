@@ -25,12 +25,12 @@ int main(int argc, char const *argv[]) {
     bool receivedACK[BUFFER_SIZE] = {};
     
     //Testing and filling 5 first packets
-    for (uint8_t i=0; i<5; i++) {
-        // cout << "Packet " << int(i) << endl;
-        buffer[i] = Packet(i, 0, 0);
-        // cout << buffer[i].validate() << endl;
-        // buffer[i].Print();
-    }
+    // for (uint8_t i=0; i<5; i++) {
+    //     // cout << "Packet " << int(i) << endl;
+    //     buffer[i] = Packet(i, 0, 0);
+    //     // cout << buffer[i].validate() << endl;
+    //     // buffer[i].print();
+    // }
 
     //Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) <= 0) {
@@ -51,9 +51,9 @@ int main(int argc, char const *argv[]) {
     }
 
     //Loop for sending
-    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress) {
+    int lowestBuffIdx = 0;
+    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int lowestBuffIdx) {
         int buffIdx = 0;
-        int lowestBuffIdx = 0;
         clock_t thisTime = clock();
         clock_t lastTime = thisTime;
         while (true) {
@@ -69,15 +69,16 @@ int main(int argc, char const *argv[]) {
                 lastTime = thisTime;
             }
         }
-    }), ref(fd), ref(buffer), ref(myAddress));
+    }), ref(fd), ref(buffer), ref(myAddress), ref(lowestBuffIdx));
 
     //Listen from receiver for ACK
+    int i = 0;
     while (true) {
         cout << "Waiting on port : " << PORT << endl;
         recvlen = recvfrom(fd, &bufferAck, sizeof(Ack), 0, (struct sockaddr*) &myAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {
-            // buffer[buffIdx].Print();
+            // buffer[buffIdx].print();
             
             //Resend package for the corresponding NAK received
             //Ack(1, x) is normal ACK
@@ -94,6 +95,13 @@ int main(int argc, char const *argv[]) {
                 } else {
                     cout << "ACK detected, finish with package " << bufferAck.nextSeqNum << endl;
                     receivedACK[bufferAck.nextSeqNum] = true;
+                    
+                    //Slide window
+                    i = lowestBuffIdx;
+                    while (receivedACK[i++]) {
+                        receivedACK[lowestBuffIdx] = 0;
+                        lowestBuffIdx++;
+                    }
                 }
             }
         }
