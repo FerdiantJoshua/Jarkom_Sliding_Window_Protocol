@@ -20,8 +20,8 @@ int main(int argc, char const *argv[]) {
     int recvlen = 0;
     int fd = 0;
 
-    Packet buffer[1024];
-    Ack *bufferAck;
+    Packet buffer[BUFFER_SIZE];
+    Ack bufferAck;
     bool receivedACK[BUFFER_SIZE] = {};
     
     //Testing and filling 5 first packets
@@ -73,7 +73,8 @@ int main(int argc, char const *argv[]) {
 
     //Listen from receiver for ACK
     while (true) {
-        recvlen = recvfrom(fd, &bufferAck[0], sizeof(Ack), 0, (struct sockaddr*) &remoteAddress, &addrlen);
+        cout << "Waiting on port : " << PORT << endl;
+        recvlen = recvfrom(fd, &bufferAck, sizeof(Ack), 0, (struct sockaddr*) &myAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {
             // buffer[buffIdx].Print();
@@ -81,18 +82,18 @@ int main(int argc, char const *argv[]) {
             //Resend package for the corresponding NAK received
             //Ack(1, x) is normal ACK
             //Ack(0, x) is NAK
-            if (bufferAck[0].validate()) {
-                cout << "ACK " << bufferAck[0].nextSeqNum << " valid, checking ACK type " << endl;
+            if (bufferAck.validate()) {
+                cout << "ACK " << bufferAck.nextSeqNum << " valid, checking ACK type " << endl;
                 //Resend packet if received ACK is an NAK
-                if (bufferAck[0].ack == 0) {
-                    cout << "NAK detected, resending package " << bufferAck[0].nextSeqNum << endl;
-                    if (sendto(fd, &buffer[bufferAck[0].nextSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                if (bufferAck.ack == 0) {
+                    cout << "NAK detected, resending package " << bufferAck.nextSeqNum << endl;
+                    if (sendto(fd, &buffer[bufferAck.nextSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
                     }
                 //Else no problem
                 } else {
-                    cout << "ACK detected, finish with package " << bufferAck[0].nextSeqNum << endl;
-                    receivedACK[bufferAck[0].nextSeqNum] = true;
+                    cout << "ACK detected, finish with package " << bufferAck.nextSeqNum << endl;
+                    receivedACK[bufferAck.nextSeqNum] = true;
                 }
             }
         }
