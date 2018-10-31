@@ -16,7 +16,7 @@ int main (int argc, char const *argv[]) {
     int recvlen;
     int fd = 0;
 
-    Packet *buffer = (Packet*) malloc(BUFFER_SIZE * sizeof(Packet));
+    Packet buffer[BUFFER_SIZE];
 
     //Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -35,7 +35,7 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
 
-    //Loop for listening
+    //Loop for listening with a new thread
     int buffIdx = 0;
     int ackSeq = 0;
     while (true) {
