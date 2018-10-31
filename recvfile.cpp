@@ -42,20 +42,25 @@ int main (int argc, char const *argv[]) {
         cout << "Waiting on port : " << PORT << ". Current bufferIdx : " << buffIdx << endl;
         recvlen = recvfrom(fd, &buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
+<<<<<<< HEAD
         if (recvlen > 0) {
             // buffer[buffIdx].Print();
+=======
+        if (recvlen > 0 ) {
+            // buffer[buffIdx].print();
+>>>>>>> 6c9c89727e455a844e223fe2bc5e033ed59ba0aa
             
             //Send ACK if package is valid, and NAK if not
             //Ack(1, x) if valid
             //Ack(0, x) if invalid
             if (buffer[buffIdx].validate()) {
-                cout << "Package valid, sending ACK " << ackSeq << endl;
-                if (sendto(fd, new Ack(1, ackSeq), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                cout << "Package valid, sending ACK " << buffer[buffIdx].getSeqNum() << endl;
+                if (sendto(fd, new Ack(1, buffer[buffIdx].getSeqNum()), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "Send ACK failed" << endl;
                 }
             } else {
-                cout << "Package invalid, sending NAK " << ackSeq << endl;
-                if (sendto(fd, new Ack(0, ackSeq), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                cout << "Package invalid, sending NAK " << buffer[buffIdx].getSeqNum() << endl;
+                if (sendto(fd, new Ack(0, buffer[buffIdx].getSeqNum()), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "Send NAK failed" << endl;
                 }
             }
