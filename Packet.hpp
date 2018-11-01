@@ -1,21 +1,24 @@
 #pragma once
 
+#include <stdlib.h>
 #include <cstdint>
 
 #define SOH (0x1)
+#define MAX_DATA_SIZE 1024
+
+using namespace std;
 
 class Packet {
 	private:
 		uint8_t soh = SOH;
 		uint32_t seqNum = 0;
 		uint32_t dataLength = 0;
-		uint8_t data = 0;
+		uint8_t *data = NULL;
 		uint8_t checksum = 0;
-		uint8_t cat = 0;
 
 	public:
 		Packet();
-		Packet(uint32_t seqNum, uint32_t dataLength, uint8_t data);
+		Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data);
 		Packet(const Packet& _packet);
 		~Packet();
 		Packet& operator=(const Packet& _packet);
@@ -23,5 +26,6 @@ class Packet {
 		uint32_t getSeqNum() const;
 
 		void print() const;
+		// void Packet::printHex() const;
 		bool validate() const;
 };
