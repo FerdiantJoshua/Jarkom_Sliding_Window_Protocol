@@ -70,10 +70,10 @@ int main(int argc, char const *argv[]) {
         while (true) {
             thisTime = clock();
             clock_t timer[WINDOW_SIZE]={0};
-            for (int i=lowestBuffIdx; i < lowestBuffIdx + WINDOW_SIZE; i++){
+            for (int i = *lowestBuffIdx; i < *lowestBuffIdx + WINDOW_SIZE; i++){
                 if (TIME_OUT < thisTime - timer[i]) {
                     timer[i] = thisTime;
-                    if (sendto(fd, &buffer[lowestBuffIdx + i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    if (sendto(fd, &buffer[*lowestBuffIdx + i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
                     }
                 }
