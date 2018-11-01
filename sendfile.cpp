@@ -24,27 +24,26 @@ int main(int argc, char const *argv[]) {
     int fd = 0;
 
     Packet buffer[BUFFER_SIZE];
-    Ack bufferAck;
+    Ack bufferTemp;
     bool receivedACK[BUFFER_SIZE] = {0};
     
-    // uint8_t data[5];
+    int lowestBuffIdx = 0;
 
-    // // uint8_t *data = (uint8_t *) malloc(5 * sizeof(uint8_t));
-    // data[0] = 1;
-    // data[1] = 2;
-    // data[2] = 3;
-    // data[3] = 4;
-    // data[4] = 5;
 
+    /**==========DATA FOR TESTING START==========**/
+    uint8_t data[MAX_DATA_SIZE] = {0};
+
+    data[0] = 1;
+    data[1] = 255;
+    data[2] = 1;
+    data[3] = 1;
+    data[4] = 1;
     
     // Testing and filling all packets
     for (uint8_t i=0; i<10; i++) {
-        // cout << "Packet " << int(i) << endl;
-        // buffer[i] = Packet(i, 5, data);
-        buffer[i] = Packet(i, 0, 0);
-        // cout << buffer[i].validate() << endl;
-        // buffer[i].print();
+        buffer[i] = Packet(i, MAX_DATA_SIZE, data);
     }
+    /**==========DATA FOR TESTING END==========**/
 
     
     // Create UDP socket
@@ -69,7 +68,6 @@ int main(int argc, char const *argv[]) {
 
     
     // Loop for sending
-    int lowestBuffIdx = 0;
     thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx) {
 
         int buffIdx = 0;
@@ -108,30 +106,32 @@ int main(int argc, char const *argv[]) {
     
     // Listen from receiver for ACK
     int i = 0;
+    int ackSeqNum = 0;
     while (true) {
         cout << endl << "Receiver's lowest buff idx : " << lowestBuffIdx << endl;
         cout << "Waiting on port : " << PORT << endl;
-        recvlen = recvfrom(fd, &bufferAck, sizeof(Ack), 0, (struct sockaddr*) &myAddress, &addrlen);
+        recvlen = recvfrom(fd, &bufferTemp, sizeof(Ack), 0, (struct sockaddr*) &myAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
-        if (recvlen > 0 ) {
-            // buffer[buffIdx].print();
+        if (recvlen > 0 ) {            
+            ackSeqNum = bufferTemp.nextSeqNum;
             
-            // Resend package for the corresponding NAK received
-            // Ack(1, x) is normal ACK
-            // Ack(0, x) is NAK
-            if (bufferAck.validate()) {
-                cout << ">   ACK " << bufferAck.nextSeqNum << " valid, checking ACK type " << endl;
+            /** Resend package for the corresponding NAK received
+                   Ack(1, x) is normal ACK
+                   Ack(0, x) is NAK
+            **/
+            if (bufferTemp.validate()) {
+                cout << ">   ACK " << ackSeqNum << " valid, checking ACK type " << endl;
                 // Resend packet if received ACK is an NAK
-                if (bufferAck.ack == 0) {
-                    cout << "   >   NAK detected, resending package " << bufferAck.nextSeqNum << endl;
-                    if (sendto(fd, &buffer[bufferAck.nextSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                if (bufferTemp.ack == 0) {
+                    cout << "   >   NAK detected, resending package " << ackSeqNum << endl;
+                    if (sendto(fd, &buffer[ackSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "      >   Send packet failed" << endl;
                     }
                 } else {  // Else no problem
-                    cout << "   >   ACK detected, finish with package " << bufferAck.nextSeqNum << endl;
-                    receivedACK[bufferAck.nextSeqNum] = true;
+                    cout << "   >   ACK detected, finish with package " << ackSeqNum << endl;
+                    receivedACK[ackSeqNum] = true;
                     
-                    // Slide window
+                    // Slide window and update array of finished buffer
                     i = lowestBuffIdx;
                     while (receivedACK[i++]) {
                         receivedACK[lowestBuffIdx] = 0;
