@@ -1,10 +1,8 @@
 #pragma once
 
+#include "Constants.hpp"
 #include <stdlib.h>
 #include <cstdint>
-
-#define SOH (0x1)
-#define MAX_DATA_SIZE 1024
 
 using namespace std;
 

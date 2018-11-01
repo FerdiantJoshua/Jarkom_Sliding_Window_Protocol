@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Constants.hpp"
 #include <cstdint>
 
 struct Ack {
