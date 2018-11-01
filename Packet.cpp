@@ -20,13 +20,13 @@ Packet::Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data) {
 	this->soh = SOH;
 	this->seqNum = seqNum;
 	this->dataLength = dataLength;
-	cout << "this is data address : " << data << endl;
-	memcpy(this->data, data, sizeof(uint8_t) * dataLength);
+	// cout << "this is data address : " << data << endl;
+	// memcpy(this->data, data, sizeof(uint8_t) * dataLength);
 	// cout << "i survive" << endl;
 	_checksum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0) ^ (0xFF);
 	// cout << int(_checksum) << endl;
 	this->checksum = _checksum;
-	this->print();
+	// this->print();
 }
 
 Packet::Packet(const Packet& _packet) {

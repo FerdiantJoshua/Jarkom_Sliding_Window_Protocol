@@ -24,20 +24,20 @@ int main(int argc, char const *argv[]) {
     Ack bufferAck;
     bool receivedACK[BUFFER_SIZE] = {0};
     
-    uint8_t data[5];
+    // uint8_t data[5];
 
-    // uint8_t *data = (uint8_t *) malloc(5 * sizeof(uint8_t));
-    data[0] = 1;
-    data[1] = 2;
-    data[2] = 3;
-    data[3] = 4;
-    data[4] = 5;
+    // // uint8_t *data = (uint8_t *) malloc(5 * sizeof(uint8_t));
+    // data[0] = 1;
+    // data[1] = 2;
+    // data[2] = 3;
+    // data[3] = 4;
+    // data[4] = 5;
 
     // Testing and filling all packets
     for (uint8_t i=0; i<10; i++) {
         // cout << "Packet " << int(i) << endl;
-        cout << "sender data address : " << data << endl;
-        buffer[i] = Packet(i, 5, data);
+        // buffer[i] = Packet(i, 5, data);
+        buffer[i] = Packet(i, 0, 0);
         // cout << buffer[i].validate() << endl;
         // buffer[i].print();
     }
@@ -73,6 +73,8 @@ int main(int argc, char const *argv[]) {
             for (int i = *lowestBuffIdx; i < *lowestBuffIdx + WINDOW_SIZE; i++){
                 if (TIME_OUT < thisTime - timer[i]) {
                     timer[i] = thisTime;
+                    cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
+                    cout << "Packet " << *lowestBuffIdx + i << " timeout, resending packet : " << *lowestBuffIdx + i << endl;
                     if (sendto(fd, &buffer[*lowestBuffIdx + i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
                     }
