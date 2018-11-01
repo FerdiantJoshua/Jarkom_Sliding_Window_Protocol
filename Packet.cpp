@@ -23,10 +23,11 @@ Packet::Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data) {
 	this->dataLength = dataLength;
 	// cout << "this is data address : " << data << endl;
 	memcpy(this->data, data, dataLength * sizeof(uint8_t));
-	// This function (accumulate)) count soh + seqNum + dataLength + every values in data.
-	//   I separate the soh from accumulate because the C++ set the structure of the class in shape of :
-	//   | (1B 3B) 								   | (4B)	   | (4B)		   | (1024B) 	| (1B 3B)									   |
-	//   | 1B SOH + 3B unused-randomed value bytes | 4B seqNum | 4B dataLength | 1024B data | 1B checksum + 3B unused-randomed-value bytes |
+	/** This function (accumulate)) count soh + seqNum + dataLength + every values in data.
+		   I separate the soh from accumulate because the C++ set the structure of the class in shape of :
+		   | (1B 3B) 								   | (4B)	   | (4B)		   | (1024B) 	| (1B 3B)									   |
+		   | 1B SOH + 3B unused-randomed value bytes | 4B seqNum | 4B dataLength | 1024B data | 1B checksum + 3B unused-randomed-value bytes |
+	**/
 	_checksum = (this->soh + std::accumulate((uint8_t*) &this->seqNum, (uint8_t*) &checksum, 0)) ^ (0xFF);
 	this->checksum = _checksum;
 
