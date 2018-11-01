@@ -83,8 +83,8 @@ int main(int argc, char const *argv[]) {
                 if (TIME_OUT < thisTime - timer[i]) {
                     timer[i] = thisTime;
                     cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                    cout << "Packet " << *lowestBuffIdx << " timeout, resending packet : " << *lowestBuffIdx << endl;
-                    if (sendto(fd, &buffer[*lowestBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    cout << "Packet " << i << " timeout, resending packet : " << i << endl;
+                    if (sendto(fd, &buffer[i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
                     }
                 }
