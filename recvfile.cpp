@@ -17,7 +17,11 @@ int main (int argc, char const *argv[]) {
     int fd = 0;
 
     Packet buffer[BUFFER_SIZE];
-    Packet tempBuffer;
+    Packet bufferTemp;
+    bool receivedPacket[BUFFER_SIZE] = {0};
+
+    int curBuffIdx = 0;
+    int lowestBuffIdx = 0;
 
     // Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -37,32 +41,47 @@ int main (int argc, char const *argv[]) {
     }
 
     // Loop for listening with a new thread
-    int buffIdx = 0;
+    int i = 0;
+    int packetSeqNum = 0;
     while (true) {
-        cout << endl << "Waiting on port : " << PORT << ". Current bufferIdx : " << buffIdx << endl;
-        recvlen = recvfrom(fd, &tempBuffer, sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
+        cout << endl << "Waiting on port : " << PORT << ". Current bufferIdx : " << curBuffIdx << endl;
+        recvlen = recvfrom(fd, &bufferTemp, sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {
-            // tempBuffer.print();
+            if (DEBUGGING_MODE) { 
+                bufferTemp.print();
+            }
+            packetSeqNum = bufferTemp.getSeqNum();
             
-            // Send ACK and store to buffer if package is valid, and send NAK if not
-            // Valid = Ack(1, x)
-            // Invalid = Ack(0, x)
-            // if (tempBuffer.validate()) {
-                cout << ">   Package valid, sending ACK " << tempBuffer.getSeqNum() << endl;
-                if (sendto(fd, new Ack(1, tempBuffer.getSeqNum()), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+            /** Send ACK and store to buffer if package is valid, and send NAK if not
+                   Valid = Ack(1, x)
+                   Invalid = Ack(0, x)
+            **/
+            if (bufferTemp.validate()) {
+                cout << ">   Package valid, sending ACK " << packetSeqNum << endl;
+                if (sendto(fd, new Ack(1, packetSeqNum), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "   >   Send ACK failed" << endl;
                 }
 
-                // Packet valid
-                buffer[buffIdx] = tempBuffer;
-                buffIdx++;
-            // } else {
-            //     cout << "Package invalid, sending NAK " << tempBuffer.getSeqNum() << endl;
-            //     if (sendto(fd, new Ack(0, tempBuffer.getSeqNum()), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
-            //         cout << "Send NAK failed" << endl;
-            //     }
-            // }
+                // Save to buffer if within receiver window
+                if (packetSeqNum >= lowestBuffIdx && packetSeqNum < lowestBuffIdx + WINDOW_SIZE) {
+                    buffer[curBuffIdx] = bufferTemp;
+                    receivedPacket[curBuffIdx] = true;
+                    curBuffIdx++;
+                }
+
+                // Slide window
+                i = lowestBuffIdx;
+                while (receivedPacket[i++]) {
+                    lowestBuffIdx++;
+                }
+
+            } else {
+                cout << ">   Package invalid, sending NAK " << packetSeqNum << endl;
+                if (sendto(fd, new Ack(0, packetSeqNum), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
+                    cout << "   >   Send NAK failed" << endl;
+                }
+            }
 
         }
 
