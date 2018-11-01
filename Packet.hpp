@@ -13,7 +13,7 @@ class Packet {
 		uint8_t soh = SOH;
 		uint32_t seqNum = 0;
 		uint32_t dataLength = 0;
-		uint8_t *data = NULL;
+		uint8_t data[MAX_DATA_SIZE] = {0};
 		uint8_t checksum = 0;
 
 	public:

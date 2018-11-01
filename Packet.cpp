@@ -9,9 +9,10 @@ Packet::Packet() {
 	this->soh = 0;
 	this->seqNum = 0;
 	this->dataLength = MAX_DATA_SIZE;
-	this->data = (uint8_t *) malloc(this->dataLength * sizeof(uint8_t));
-	memset(this->data, 0, this->dataLength);
+	memset(this->data, 0, this->dataLength * sizeof(uint8_t));
 	this->checksum = 0;	
+	
+	// cout << "empty constructor, size of data : " << sizeof(this->data) << endl;
 	// this->print();
 }
 
@@ -21,21 +22,27 @@ Packet::Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data) {
 	this->seqNum = seqNum;
 	this->dataLength = dataLength;
 	// cout << "this is data address : " << data << endl;
-	// memcpy(this->data, data, sizeof(uint8_t) * dataLength);
-	// cout << "i survive" << endl;
-	_checksum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0) ^ (0xFF);
-	// cout << int(_checksum) << endl;
+	memcpy(this->data, data, dataLength * sizeof(uint8_t));
+	// This function (accumulate)) count soh + seqNum + dataLength + every values in data.
+	//   I separate the soh from accumulate because the C++ set the structure of the class in shape of :
+	//   | (1B 3B) 								   | (4B)	   | (4B)		   | (1024B) 	| (1B 3B)									   |
+	//   | 1B SOH + 3B unused-randomed value bytes | 4B seqNum | 4B dataLength | 1024B data | 1B checksum + 3B unused-randomed-value bytes |
+	_checksum = (this->soh + std::accumulate((uint8_t*) &this->seqNum, (uint8_t*) &checksum, 0)) ^ (0xFF);
 	this->checksum = _checksum;
-	// this->print();
+
+	cout << "parametered constructor, size of data : " << sizeof(this->data) << endl;
+	this->print();
 }
 
 Packet::Packet(const Packet& _packet) {
 	this->soh = _packet.soh;
 	this->seqNum = _packet.seqNum;
 	this->dataLength = _packet.dataLength;
-	this->data = _packet.data;
+	memcpy(this->data, _packet.data, dataLength * sizeof(uint8_t));
 	this->checksum = _packet.checksum;
-	// this->print();
+	
+	cout << "copy constructor, size of data : " << sizeof(this->data) << endl;
+	this->print();
 }
 
 Packet::~Packet() {
@@ -46,14 +53,17 @@ Packet& Packet::operator=(const Packet& _packet) {
 	this->soh = _packet.soh;
 	this->seqNum = _packet.seqNum;
 	this->dataLength = _packet.dataLength;
-	this->data = _packet.data;
+	memcpy(this->data, _packet.data, dataLength * sizeof(uint8_t));
 	this->checksum = _packet.checksum;
+	
+	cout << "operator=, size of data : " << sizeof(this->data) << endl;
+	this->print();
 }
 
 bool Packet::validate() const{
 	uint8_t sum;
-	sum = std::accumulate((uint8_t*) this, (uint8_t*) &checksum, 0) ^ (0xFF);
-	// cout << int(sum) << endl;
+	sum = (this->soh + std::accumulate((uint8_t*) &this->seqNum, (uint8_t*) &checksum, 0)) ^ (0xFF);
+	// cout << ">    sum : " << bitset<8>(sum) << endl;
 	return checksum == sum;
 }
 
@@ -65,6 +75,7 @@ void Packet::print() const {
 	cout << "soh : " << bitset<8>(this->soh) << endl;
 	cout << "seqNum : " << bitset<32>(this->seqNum) << endl;
 	cout << "dataLength : " << bitset<32>(this->dataLength) << endl;
-	cout << "data : " << bitset<64>(*this->data) << endl;
-	cout << "checksum : " << bitset<8>(this->checksum) << endl << endl;
+	cout << "data : " << bitset<8 * MAX_DATA_SIZE>(this->data) << endl;
+	cout << "checksum : " << bitset<8>(this->checksum) << endl;
+	cout << "valid : " << this->validate() << endl << endl;
 }
