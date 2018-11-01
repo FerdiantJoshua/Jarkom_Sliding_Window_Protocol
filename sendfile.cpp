@@ -8,9 +8,12 @@
 #include <ctime>
 #include <iostream>
 #include <thread>
+#include <mutex>
 #include <string.h>
 
 using namespace std;
+
+mutex thread_mutex;
 
 int main(int argc, char const *argv[]) {
     char *server = "127.0.0.1";
@@ -33,6 +36,7 @@ int main(int argc, char const *argv[]) {
     // data[3] = 4;
     // data[4] = 5;
 
+    
     // Testing and filling all packets
     for (uint8_t i=0; i<10; i++) {
         // cout << "Packet " << int(i) << endl;
@@ -42,40 +46,45 @@ int main(int argc, char const *argv[]) {
         // buffer[i].print();
     }
 
+    
     // Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) <= 0) {
         cout << "Socket creation error" << endl;
         return -1;
     }
 
+    
     // Bind socket to any IP and a port
     memset((char *)&myAddress, '0', sizeof(myAddress));
     myAddress.sin_family = AF_INET;
     myAddress.sin_addr.s_addr = INADDR_ANY; //INADDR_ANY = 0.0.0.0 = any available IP address
     myAddress.sin_port = htons(PORT);
 
+    
     // Convert host address to binary format, and store it in myAddress 
     if ((inet_aton(server, &myAddress.sin_addr)) < 0) {
         cout << "inet_aton error" << endl;
         return -1;
     }
 
+    
     // Loop for sending
     int lowestBuffIdx = 0;
     thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx) {
+
         int buffIdx = 0;
         clock_t thisTime = clock();
         clock_t lastTime = thisTime;
+        clock_t timer[BUFFER_SIZE]={thisTime};
 
         while (true) {
             thisTime = clock();
-            clock_t timer[WINDOW_SIZE]={0};
             for (int i = *lowestBuffIdx; i < *lowestBuffIdx + WINDOW_SIZE; i++){
                 if (TIME_OUT < thisTime - timer[i]) {
                     timer[i] = thisTime;
                     cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                    cout << "Packet " << *lowestBuffIdx + i << " timeout, resending packet : " << *lowestBuffIdx + i << endl;
-                    if (sendto(fd, &buffer[*lowestBuffIdx + i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    cout << "Packet " << *lowestBuffIdx << " timeout, resending packet : " << *lowestBuffIdx << endl;
+                    if (sendto(fd, &buffer[*lowestBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
                     }
                 }
@@ -87,6 +96,8 @@ int main(int argc, char const *argv[]) {
                 cout << "Sending packet " << buffIdx << endl;
                 if (sendto(fd, &buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                     cout << "Send packet failed" << endl;
+                } else {
+                    timer[buffIdx] = thisTime;
                 }
                 buffIdx++;
                 lastTime = thisTime;
@@ -94,6 +105,7 @@ int main(int argc, char const *argv[]) {
         }
     }), fd, buffer, myAddress, &lowestBuffIdx);
 
+    
     // Listen from receiver for ACK
     int i = 0;
     while (true) {
@@ -115,8 +127,7 @@ int main(int argc, char const *argv[]) {
                     if (sendto(fd, &buffer[bufferAck.nextSeqNum], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "      >   Send packet failed" << endl;
                     }
-                // Else no problem
-                } else {
+                } else {  // Else no problem
                     cout << "   >   ACK detected, finish with package " << bufferAck.nextSeqNum << endl;
                     receivedACK[bufferAck.nextSeqNum] = true;
                     
