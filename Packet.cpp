@@ -94,3 +94,21 @@ void Packet::print() const {
 	cout << "checksum : " << bitset<8>(this->checksum) << endl;
 	cout << "valid : " << this->validate() << endl << endl;
 }
+
+/*void Packet::setSeqNum(uint32_t x){
+	this->seqNum = x;
+}
+
+void Packet::setDataLength(uint32_t x){
+	this->dataLength = x;
+}
+
+void Packet::setData(uint8_t *data){
+	memcpy(&this->data, data, dataLength * sizeof(uint8_t));
+}
+
+void Packet::setCheckSum(){
+	_checksum = (this->soh + std::accumulate((uint8_t*) &this->seqNum, (uint8_t*) &checksum, 0)) ^ (0xFF);
+	this->checksum = _checksum;
+}
+*/

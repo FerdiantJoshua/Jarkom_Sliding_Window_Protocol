@@ -26,4 +26,9 @@ class Packet {
 		void print() const;
 		// void Packet::printHex() const;
 		bool validate() const;
+
+		/*void setSeqNum(uint32_t x);
+		void setDataLength(uint32_t x);
+		void setData(uint8_t *data);
+		void setCheckSum();*/
 };

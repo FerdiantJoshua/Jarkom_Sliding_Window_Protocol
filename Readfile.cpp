@@ -18,7 +18,9 @@ int main(){
     //Open File
     //const char *fileName = argv[1];
     Packet buffer[BUFFER_SIZE];
-    int bufferCounter = 0;
+    uint8_t dataRead[MAX_DATA_SIZE];
+    uint32_t packetCounter = 0;
+    uint32_t packetSize = 0;
     bool isAlreadyRead = false;
 
     FILE* file = fopen(/*fileName*/"test.txt", "r");
@@ -29,21 +31,37 @@ int main(){
     }
 
     while(!isAlreadyRead){
-            cout << "test" << endl;
-        bufferCounter = fread(buffer, 1, BUFFER_SIZE, file);
-            cout << bufferCounter << endl;
-            for (int i=0; i<bufferCounter; i++){
-                buffer[i].print();
-            }
+            cout << "test" << endl;		//test
 
-        if (bufferCounter == BUFFER_SIZE) {
+
+        packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
+            cout << packetSize << endl;	//test
+            /*for (int i=0; i<bufferCounter; i++){
+                buffer[i].print();
+            }*/
+
+        Packet *packet1 = new Packet(packetCounter, packetSize, dataRead);
+        	//packet1->print();			//test
+        buffer[packetCounter] = *packet1;
+        	buffer[packetCounter].print();	//test
+
+
+        packetCounter++;
+
+        if(feof(file)){
+        	isAlreadyRead = true;
+        }
+
+        /*if (packetSize == MAX_DATA_SIZE) {
             char temp[1];
             int next_buffer_size = fread(temp, 1, 1, file);
                 cout << next_buffer_size << endl;
             if (next_buffer_size == 0) isAlreadyRead = true;
-        } else if (bufferCounter < BUFFER_SIZE) {
+        } else if (packetSize < MAX_DATA_SIZE) {
             isAlreadyRead = true;
-        }
+        }*/
+
+        
     }
 
     
