@@ -27,9 +27,11 @@ Ack | Next Sequence Number|Checksum
 ---
 ## Compile and Running
 
-```./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>```
-```./recvfile <filename> <windowsize> <buffersize> <port>```
+``` ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port> ```
+<!-- -->
+``` ./recvfile <filename> <windowsize> <buffersize> <port> ```
 
 ### example
-> ./recvfile sample.txt 10 1024 8080 </break>
-> ./sendfile sample.txt 10 1024 127.0.0.1 8080 </break>
+> ./recvfile sample.txt 10 1024 8080
+ <!-- -->
+> ./sendfile sample.txt 10 1024 127.0.0.1 8080
