@@ -16,70 +16,42 @@ using namespace std;
 mutex thread_mutex;
 
 int main(int argc, char const *argv[]) {
-    char *server = "127.0.0.1";
+    if (argc < 6) {
+        cerr << "input parameter invalid!";
+        return -1;
+    }
+    const char* fileName = argv[1];
+    const int windowSize = stoi(argv[2]);
+    const int bufferSize = stoi(argv[3]);
+    const char *server = argv[4];
+    const int port = stoi(argv[5]);
+    // char *server = "127.0.0.1";
     struct sockaddr_in myAddress;
     struct sockaddr_in remoteAddress;
     socklen_t addrlen = sizeof(remoteAddress);
     int recvlen = 0;
     int fd = 0;
 
-    Packet buffer[BUFFER_SIZE];
+    Packet *buffer = (Packet*) malloc(sizeof(Packet) * bufferSize);
     Ack bufferTemp;
-    bool receivedACK[BUFFER_SIZE] = {0};
+    bool receivedACK[bufferSize] = {0};
     
     int lowestBuffIdx = 0;
 
-    /**==========READ FILE AND STORE TO BUFFER START==========**/
-    uint8_t dataRead[MAX_DATA_SIZE];
-    uint32_t packetCounter = 0;
-    uint32_t packetSize = 0;
-    bool isAlreadyRead = false;
-
-    FILE* file = fopen(/*fileName*/"test.txt", "r");
-    if(file == NULL){
-        cout << "Can't open file" << endl;
-    } else {
-        cout << "File opened" << endl;
-    }
-
-    while(!isAlreadyRead && (packetCounter < BUFFER_SIZE)){
-            //cout << "test" << endl;		//test
-
-
-        packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
-            //cout << packetSize << endl;	//test
-            /*for (int i=0; i<bufferCounter; i++){
-                buffer[i].print();
-            }*/
-
-        Packet *packet1 = new Packet(packetCounter, packetSize, dataRead);
-        	//packet1->print();			//test
-        buffer[packetCounter++] = *packet1;
-        	//buffer[packetCounter].print();	//test
-
-
-
-        if(feof(file)){
-        	isAlreadyRead = true;
-            buffer[packetCounter] = Packet(2,packetCounter);
-        }
-    }
-    /**==========READ FILE AND STORE TO BUFFER END==========**/
-
 
     /**==========DATA FOR TESTING START==========**/
-    // uint8_t data[MAX_DATA_SIZE] = {0};
+    uint8_t data[MAX_DATA_SIZE] = {0};
 
-    // data[0] = 1;
-    // data[1] = 255;
-    // data[2] = 1;
-    // data[3] = 1;
-    // data[4] = 1;
+    data[0] = 1;
+    data[1] = 255;
+    data[2] = 1;
+    data[3] = 1;
+    data[4] = 1;
     
-    // // Testing and filling all packets
-    // for (uint8_t i=0; i<10; i++) {
-    //     buffer[i] = Packet(i, MAX_DATA_SIZE, data);
-    // }
+    // Testing and filling all packets
+    for (uint8_t i=0; i<10; i++) {
+        buffer[i] = Packet(i, MAX_DATA_SIZE, data);
+    }
     /**==========DATA FOR TESTING END==========**/
 
     
@@ -105,46 +77,40 @@ int main(int argc, char const *argv[]) {
 
     
     // Loop for sending
-    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx) {
+    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx, int windowSize, int bufferSize) {
 
-        int currBuffIdx = 0;
+        int buffIdx = 0;
         clock_t thisTime = clock();
         clock_t lastTime = thisTime;
-        clock_t timer[BUFFER_SIZE]={thisTime};
+        clock_t timer[bufferSize]={thisTime};
 
         while (true) {
             thisTime = clock();
-
-            // Don't send Packet with SOH = 0
-            if (buffer[currBuffIdx].getSoh() != 0) {
-                for (int i = *lowestBuffIdx; i < *lowestBuffIdx + WINDOW_SIZE; i++){
-                    if (TIME_OUT < thisTime - timer[i]) {
-                        timer[i] = thisTime;
-                        cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                        cout << "Packet " << i << " timeout, resending packet : " << i << endl;
-                        if (sendto(fd, &buffer[i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
-                            cout << "Send packet failed" << endl;
-                        }
-                    }
-                }
-
-                /** Send 1 packet/second
-                 *  Only send buffer within window size
-                 */
-                if (((thisTime - lastTime) >= ONE_SECOND) && (currBuffIdx < *lowestBuffIdx + WINDOW_SIZE)) {
+            for (int i = *lowestBuffIdx; i < *lowestBuffIdx + windowSize; i++){
+                if (TIME_OUT < thisTime - timer[i]) {
+                    timer[i] = thisTime;
                     cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                    cout << "Sending packet " << currBuffIdx << endl;
-                    if (sendto(fd, &buffer[currBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    cout << "Packet " << i << " timeout, resending packet : " << i << endl;
+                    if (sendto(fd, buffer[i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
                         cout << "Send packet failed" << endl;
-                    } else {
-                        timer[currBuffIdx] = thisTime;
                     }
-                    currBuffIdx++;
-                    lastTime = thisTime;
                 }
             }
+
+            // Send packet 1/second
+            if (((thisTime - lastTime) >= ONE_SECOND) && (buffIdx < *lowestBuffIdx + windowSize)) {
+                cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
+                cout << "Sending packet " << buffIdx << endl;
+                if (sendto(fd, buffer[buffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                    cout << "Send packet failed" << endl;
+                } else {
+                    timer[buffIdx] = thisTime;
+                }
+                buffIdx++;
+                lastTime = thisTime;
+            }
         }
-    }), fd, buffer, myAddress, &lowestBuffIdx);
+    }), fd, buffer, myAddress, &lowestBuffIdx, windowSize, bufferSize);
 
     
     // Listen from receiver for ACK
@@ -159,8 +125,8 @@ int main(int argc, char const *argv[]) {
             ackSeqNum = bufferTemp.nextSeqNum;
             
             /** Resend package for the corresponding NAK received
-             *      Ack(1, x) is normal ACK
-             *      Ack(0, x) is NAK
+                   Ack(1, x) is normal ACK
+                   Ack(0, x) is NAK
             **/
             if (bufferTemp.validate()) {
                 cout << ">   ACK " << ackSeqNum << " valid, checking ACK type " << endl;
