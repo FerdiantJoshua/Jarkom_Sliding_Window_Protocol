@@ -21,6 +21,7 @@ class Packet {
 		~Packet();
 		Packet& operator=(const Packet& _packet);
 
+		uint8_t getSoh() const;
 		uint32_t getSeqNum() const;
 
 		void print() const;
