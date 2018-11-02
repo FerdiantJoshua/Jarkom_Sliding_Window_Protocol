@@ -45,54 +45,12 @@ int main(int argc, char const *argv[]) {
     uint32_t packetSize = 0;
     bool isAlreadyRead = false;
 
-    FILE* file = fopen(/*fileName*/"test.txt", "r");
+    FILE* file = fopen(/*fileName*/fileName, "r");
     if(file == NULL){
         cout << "Can't open file" << endl;
     } else {
         cout << "File opened" << endl;
     }
-
-    while(!isAlreadyRead && (packetCounter < bufferSize)){
-            //cout << "test" << endl;		//test
-
-
-        packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
-            //cout << packetSize << endl;	//test
-            /*for (int i=0; i<bufferCounter; i++){
-                buffer[i].print();
-            }*/
-
-        Packet *packet1 = new Packet(packetCounter, packetSize, dataRead);
-        	//packet1->print();			//test
-        buffer[packetCounter++] = *packet1;
-        	//buffer[packetCounter].print();	//test
-
-
-
-        if(feof(file)){
-        	isAlreadyRead = true;
-            buffer[packetCounter] = Packet(2,packetCounter);
-        }
-    }
-    /**==========READ FILE AND STORE TO BUFFER END==========**/
-
-
-    /**==========DATA FOR TESTING START==========**/
-    // uint8_t data[MAX_DATA_SIZE] = {0};
-
-    // data[0] = 1;
-    // data[1] = 255;
-    // data[2] = 1;
-    // data[3] = 1;
-    // data[4] = 1;
-    
-    // // Testing and filling all packets
-    // for (uint8_t i=0; i<10; i++) {
-    //     buffer[i] = Packet(i, MAX_DATA_SIZE, data);
-    // }
-    /**==========DATA FOR TESTING END==========**/
-
-    
     // Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) <= 0) {
         cout << "Socket creation error" << endl;
@@ -112,51 +70,92 @@ int main(int argc, char const *argv[]) {
         cout << "inet_aton error" << endl;
         return -1;
     }
+    while(!isAlreadyRead) {
+        packetCounter = 0;
+        while(packetCounter < bufferSize){
+            thread_mutex.lock();
+            packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
+                //cout << packetSize << endl;	//test
+                /*for (int i=0; i<bufferCounter; i++){
+                    buffer[i].print();
+                }*/
 
-    
-    // Loop for sending
-    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx, int windowSize, int bufferSize) {
+            Packet *packet1 = new Packet(packetCounter, packetSize, dataRead);
+                //packet1->print();			//test
+            buffer[packetCounter++] = *packet1;
+                //buffer[packetCounter].print();	//test
 
-        int currBuffIdx = 0;
-        clock_t thisTime = clock();
-        clock_t lastTime = thisTime;
-        clock_t timer[bufferSize]={thisTime};
 
-        while (true) {
-            thisTime = clock();
 
-            // Don't send Packet with SOH = 0
-            if (buffer[currBuffIdx].getSoh() != 0) {
-                for (int i = *lowestBuffIdx; i < *lowestBuffIdx + windowSize; i++){
-                    if (TIME_OUT < thisTime - timer[i]) {
-                        timer[i] = thisTime;
-                        cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                        cout << "Packet " << i << " timeout, resending packet : " << i << endl;
-                        if (sendto(fd, &buffer[i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
-                            cout << "Send packet failed" << endl;
-                        }
-                    }
-                }
-
-                /** Send 1 packet/second
-                 *  Only send buffer within window size
-                 */
-                if (((thisTime - lastTime) >= ONE_SECOND) && (currBuffIdx < *lowestBuffIdx + windowSize)) {
-                    cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
-                    cout << "Sending packet " << currBuffIdx << endl;
-                    if (sendto(fd, &buffer[currBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
-                        cout << "Send packet failed" << endl;
-                    } else {
-                        timer[currBuffIdx] = thisTime;
-                    }
-                    currBuffIdx++;
-                    lastTime = thisTime;
-                }
+            if(feof(file)){
+                isAlreadyRead = true;
+                buffer[packetCounter] = Packet(2,packetCounter);
+                break;
             }
         }
-    }), fd, buffer, myAddress, &lowestBuffIdx, windowSize, bufferSize);
+        thread_mutex.unlock();
+        /**==========READ FILE AND STORE TO BUFFER END==========**/
 
-    
+
+        /**==========DATA FOR TESTING START==========**/
+        // uint8_t data[MAX_DATA_SIZE] = {0};
+
+        // data[0] = 1;
+        // data[1] = 255;
+        // data[2] = 1;
+        // data[3] = 1;
+        // data[4] = 1;
+        
+        // // Testing and filling all packets
+        // for (uint8_t i=0; i<10; i++) {
+        //     buffer[i] = Packet(i, MAX_DATA_SIZE, data);
+        // }
+        /**==========DATA FOR TESTING END==========**/
+      
+        // Loop for sending
+        thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx, int windowSize, int bufferSize) {
+            thread_mutex.lock();
+            int currBuffIdx = 0;
+            clock_t thisTime = clock();
+            clock_t lastTime = thisTime;
+            clock_t timer[bufferSize]={thisTime};
+
+            while (true) {
+                thisTime = clock();
+
+                // Don't send Packet with SOH = 0
+                if (buffer[currBuffIdx].getSoh() != 0) {
+                    for (int i = *lowestBuffIdx; i < *lowestBuffIdx + windowSize; i++){
+                        if (TIME_OUT < thisTime - timer[i]) {
+                            timer[i] = thisTime;
+                            cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
+                            cout << "Packet " << i << " timeout, resending packet : " << i << endl;
+                            if (sendto(fd, &buffer[i], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                                cout << "Send packet failed" << endl;
+                            }
+                        }
+                    }
+
+                    /** Send 1 packet/second
+                     *  Only send buffer within window size
+                     */
+                    if (((thisTime - lastTime) >= ONE_SECOND) && (currBuffIdx < *lowestBuffIdx + windowSize)) {
+                        cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
+                        cout << "Sending packet " << currBuffIdx << endl;
+                        if (sendto(fd, &buffer[currBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
+                            cout << "Send packet failed" << endl;
+                        } else {
+                            timer[currBuffIdx] = thisTime;
+                        }
+                        currBuffIdx++;
+                        lastTime = thisTime;
+                    }
+                }
+            }
+        }), fd, buffer, myAddress, &lowestBuffIdx, windowSize, bufferSize);
+        thread_mutex.unlock();
+    }
+    fclose(file);
     // Listen from receiver for ACK
     int i = 0;
     int ackSeqNum = 0;
@@ -194,7 +193,6 @@ int main(int argc, char const *argv[]) {
             }
         }
     }
-
     return 0;
 }
 
