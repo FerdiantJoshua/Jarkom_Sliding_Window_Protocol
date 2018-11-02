@@ -58,5 +58,8 @@ Ack | Next Sequence Number|Checksum
 
 ### Pembagian tugas
 Ferdiant Joshua M.	: sendfile, recvfile, Packet, ACK, UDP socket
+<!-- -->
 Kevin Basuki 		: Struktur ACK, Packet, readfile(sendfile), writefile(recvfile)
+<!-- -->
 Nicolaus Boby		: sendfile, recvfile, Packet, ACK, mutex
+<!-- -->
