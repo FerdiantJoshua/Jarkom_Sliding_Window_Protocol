@@ -45,7 +45,7 @@ int main(int argc, char const *argv[]) {
     uint32_t packetSize = 0;
     bool isAlreadyRead = false;
 
-    FILE* file = fopen(/*fileName*/fileName, "r");
+    FILE* file = fopen(fileName, "r");
     if(file == NULL){
         cout << "Can't open file" << endl;
     } else {
@@ -70,10 +70,9 @@ int main(int argc, char const *argv[]) {
         cout << "inet_aton error" << endl;
         return -1;
     }
-    while(!isAlreadyRead) {
         packetCounter = 0;
-        while(packetCounter < bufferSize){
-            thread_mutex.lock();
+        cout << "test" << endl;
+        while(!isAlreadyRead && packetCounter < bufferSize){
             packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
                 //cout << packetSize << endl;	//test
                 /*for (int i=0; i<bufferCounter; i++){
@@ -84,16 +83,14 @@ int main(int argc, char const *argv[]) {
                 //packet1->print();			//test
             buffer[packetCounter++] = *packet1;
                 //buffer[packetCounter].print();	//test
-
-
-
             if(feof(file)){
                 isAlreadyRead = true;
                 buffer[packetCounter] = Packet(2,packetCounter);
                 break;
             }
+            
         }
-        thread_mutex.unlock();
+        
         /**==========READ FILE AND STORE TO BUFFER END==========**/
 
 
@@ -114,7 +111,6 @@ int main(int argc, char const *argv[]) {
       
         // Loop for sending
         thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx, int windowSize, int bufferSize) {
-            thread_mutex.lock();
             int currBuffIdx = 0;
             clock_t thisTime = clock();
             clock_t lastTime = thisTime;
@@ -151,11 +147,11 @@ int main(int argc, char const *argv[]) {
                         lastTime = thisTime;
                     }
                 }
+                if (currBuffIdx >= bufferSize) {
+                    break;
+                }
             }
         }), fd, buffer, myAddress, &lowestBuffIdx, windowSize, bufferSize);
-        thread_mutex.unlock();
-    }
-    fclose(file);
     // Listen from receiver for ACK
     int i = 0;
     int ackSeqNum = 0;
@@ -196,4 +192,7 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
+// g++ sendfile.cpp Packet.cpp Ack.cpp -std=gnu++17 -o sender -lpthread
 // g++ sendfile.cpp Packet.cpp Ack.cpp -o sender -lpthread
+
+// ./sender test.txt 10 1024 127.0.0.1 8080

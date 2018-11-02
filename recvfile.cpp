@@ -125,4 +125,7 @@ int main (int argc, char const *argv[]) {
     return 0;
 }
 
+// g++ recvfile.cpp Packet.cpp Ack.cpp -std=gnu++17 -o receiver
 // g++ recvfile.cpp Packet.cpp Ack.cpp -o receiver
+
+// ./receiver result.txt 10 1024 8080
