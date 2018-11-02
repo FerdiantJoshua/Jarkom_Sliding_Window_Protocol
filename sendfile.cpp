@@ -16,16 +16,26 @@ using namespace std;
 mutex thread_mutex;
 
 int main(int argc, char const *argv[]) {
-    char *server = "127.0.0.1";
+    if (argc < 6) {
+        cerr << "input parameter invalid!" << endl;
+        return -1;
+    }
+    const char* fileName = argv[1];
+    const int windowSize = stoi(argv[2]);
+    const int bufferSize = stoi(argv[3]);
+    const char *server = argv[4];
+    const int port = stoi(argv[5]);
+
+    // char *server = "127.0.0.1";
     struct sockaddr_in myAddress;
     struct sockaddr_in remoteAddress;
     socklen_t addrlen = sizeof(remoteAddress);
     int recvlen = 0;
     int fd = 0;
 
-    Packet buffer[BUFFER_SIZE];
+    Packet *buffer = (Packet*) malloc(sizeof(Packet) * bufferSize);
     Ack bufferTemp;
-    bool receivedACK[BUFFER_SIZE] = {0};
+    bool receivedACK[bufferSize] = {0};
     
     int lowestBuffIdx = 0;
 
@@ -42,7 +52,7 @@ int main(int argc, char const *argv[]) {
         cout << "File opened" << endl;
     }
 
-    while(!isAlreadyRead && (packetCounter < BUFFER_SIZE)){
+    while(!isAlreadyRead && (packetCounter < bufferSize)){
             //cout << "test" << endl;		//test
 
 
@@ -94,7 +104,7 @@ int main(int argc, char const *argv[]) {
     memset((char *)&myAddress, '0', sizeof(myAddress));
     myAddress.sin_family = AF_INET;
     myAddress.sin_addr.s_addr = INADDR_ANY; //INADDR_ANY = 0.0.0.0 = any available IP address
-    myAddress.sin_port = htons(PORT);
+    myAddress.sin_port = htons(port);
 
     
     // Convert host address to binary format, and store it in myAddress 
@@ -105,19 +115,19 @@ int main(int argc, char const *argv[]) {
 
     
     // Loop for sending
-    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx) {
+    thread thread_sender(([](int fd, Packet* buffer, sockaddr_in myAddress, int *lowestBuffIdx, int windowSize, int bufferSize) {
 
         int currBuffIdx = 0;
         clock_t thisTime = clock();
         clock_t lastTime = thisTime;
-        clock_t timer[BUFFER_SIZE]={thisTime};
+        clock_t timer[bufferSize]={thisTime};
 
         while (true) {
             thisTime = clock();
 
             // Don't send Packet with SOH = 0
             if (buffer[currBuffIdx].getSoh() != 0) {
-                for (int i = *lowestBuffIdx; i < *lowestBuffIdx + WINDOW_SIZE; i++){
+                for (int i = *lowestBuffIdx; i < *lowestBuffIdx + windowSize; i++){
                     if (TIME_OUT < thisTime - timer[i]) {
                         timer[i] = thisTime;
                         cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
@@ -131,7 +141,7 @@ int main(int argc, char const *argv[]) {
                 /** Send 1 packet/second
                  *  Only send buffer within window size
                  */
-                if (((thisTime - lastTime) >= ONE_SECOND) && (currBuffIdx < *lowestBuffIdx + WINDOW_SIZE)) {
+                if (((thisTime - lastTime) >= ONE_SECOND) && (currBuffIdx < *lowestBuffIdx + windowSize)) {
                     cout << endl << "Sender's lowest buff idx : " << *lowestBuffIdx << endl;
                     cout << "Sending packet " << currBuffIdx << endl;
                     if (sendto(fd, &buffer[currBuffIdx], sizeof(Packet), 0, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0) {
@@ -144,7 +154,7 @@ int main(int argc, char const *argv[]) {
                 }
             }
         }
-    }), fd, buffer, myAddress, &lowestBuffIdx);
+    }), fd, buffer, myAddress, &lowestBuffIdx, windowSize, bufferSize);
 
     
     // Listen from receiver for ACK
@@ -152,7 +162,7 @@ int main(int argc, char const *argv[]) {
     int ackSeqNum = 0;
     while (true) {
         cout << endl << "Receiver's lowest buff idx : " << lowestBuffIdx << endl;
-        cout << "Waiting on port : " << PORT << endl;
+        cout << "Waiting on port : " << port << endl;
         recvlen = recvfrom(fd, &bufferTemp, sizeof(Ack), 0, (struct sockaddr*) &myAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {            

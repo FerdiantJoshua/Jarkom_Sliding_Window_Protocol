@@ -10,15 +10,24 @@
 using namespace std;
 
 int main (int argc, char const *argv[]) {
+    if (argc < 5) {
+        cerr << "input parameter invalid!" << endl;
+        return -1;
+    }
+    const char* fileName = argv[1];
+    const int windowSize = stoi(argv[2]);
+    const int bufferSize = stoi(argv[3]);
+    const int port = stoi(argv[4]);
+
     struct sockaddr_in myAddress;
     struct sockaddr_in remoteAddress;
     socklen_t addrlen = sizeof(remoteAddress);
     int recvlen;
     int fd = 0;
 
-    Packet buffer[BUFFER_SIZE];
+    Packet buffer[bufferSize];
     Packet bufferTemp;
-    bool receivedPacket[BUFFER_SIZE] = {0};
+    bool receivedPacket[bufferSize] = {0};
 
     int curBuffIdx = 0;
     int lowestBuffIdx = 0;
@@ -36,7 +45,7 @@ int main (int argc, char const *argv[]) {
     memset((char *) &myAddress, '0', sizeof(myAddress));
     myAddress.sin_family = AF_INET;
     myAddress.sin_addr.s_addr = htonl(INADDR_ANY); // INADDR_ANY = 0.0.0.0 = any available IP address
-    myAddress.sin_port = htons(PORT);
+    myAddress.sin_port = htons(port);
 
     if (bind(fd, (struct sockaddr *) &myAddress, sizeof(myAddress)) < 0 ) {
         cout << "Bind error" << endl;
@@ -47,7 +56,7 @@ int main (int argc, char const *argv[]) {
     int i = 0;
     int packetSeqNum = 0;
     while (true) {
-        cout << endl << "Waiting on port : " << PORT << ". Current bufferIdx : " << curBuffIdx << endl;
+        cout << endl << "Waiting on port : " << port << ". Current bufferIdx : " << curBuffIdx << endl;
         recvlen = recvfrom(fd, &bufferTemp, sizeof(Packet), 0, (struct sockaddr*) &remoteAddress, &addrlen);
         cout << "received " << recvlen << " bytes from " << &remoteAddress <<" with packet-detail :" << endl;
         if (recvlen > 0 ) {
@@ -73,7 +82,7 @@ int main (int argc, char const *argv[]) {
                 }
 
                 // Save to buffer if within receiver window
-                if (packetSeqNum >= lowestBuffIdx && packetSeqNum < lowestBuffIdx + WINDOW_SIZE) {
+                if (packetSeqNum >= lowestBuffIdx && packetSeqNum < lowestBuffIdx + windowSize) {
                     buffer[curBuffIdx] = bufferTemp;
                     receivedPacket[curBuffIdx] = true;
                     curBuffIdx++;
@@ -98,7 +107,7 @@ int main (int argc, char const *argv[]) {
 
     for(int i=0; i<curBuffIdx; i++){
         if(i<(curBuffIdx-1)){
-            fwrite(buffer[i].getData(), 1, BUFFER_SIZE, file);
+            fwrite(buffer[i].getData(), 1, bufferSize, file);
         }else{
             fwrite(buffer[i].getData(), 1, int(buffer[i].getDataLength()), file);
         }
