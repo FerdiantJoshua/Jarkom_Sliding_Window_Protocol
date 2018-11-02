@@ -17,12 +17,15 @@ class Packet {
 	public:
 		Packet();
 		Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data);
+		Packet(uint8_t soh, uint32_t seqNum);
 		Packet(const Packet& _packet);
 		~Packet();
 		Packet& operator=(const Packet& _packet);
 
 		uint8_t getSoh() const;
 		uint32_t getSeqNum() const;
+		uint32_t getDataLength() const;
+		uint8_t *getData();
 
 		void print() const;
 		// void Packet::printHex() const;

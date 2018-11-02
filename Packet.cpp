@@ -38,6 +38,19 @@ Packet::Packet(uint32_t seqNum, uint32_t dataLength, uint8_t *data) {
 	}
 }
 
+Packet::Packet(uint8_t soh, uint32_t seqNum){
+	this->soh = soh;
+	this->seqNum = seqNum;
+	this->dataLength = 0;
+	memset(this->data, 0, this->dataLength * sizeof(uint8_t));
+	this->checksum = (this->soh + std::accumulate((uint8_t*) &this->seqNum, (uint8_t*) &checksum, 0)) ^ (0xFF);	
+	
+	if (DEBUGGING_MODE) { 
+		cout << "one parameter constructor, size of data : " << sizeof(this->data) << endl;
+		this->print();
+	}
+}
+
 Packet::Packet(const Packet& _packet) {
 	this->soh = _packet.soh;
 	this->seqNum = _packet.seqNum;
@@ -83,6 +96,14 @@ uint8_t Packet::getSoh() const {
 
 uint32_t Packet::getSeqNum() const {
 	return this->seqNum;
+}
+
+uint32_t Packet::getDataLength() const {
+	return this->dataLength;
+}
+
+uint8_t *Packet::getData(){
+	return this->data;
 }
 
 void Packet::print() const {

@@ -42,26 +42,26 @@ int main(int argc, char const *argv[]) {
         cout << "File opened" << endl;
     }
 
-    while(!isAlreadyRead){
-            cout << "test" << endl;		//test
+    while(!isAlreadyRead && (packetCounter < BUFFER_SIZE)){
+            //cout << "test" << endl;		//test
 
 
         packetSize = fread(dataRead, 1, MAX_DATA_SIZE, file);
-            cout << packetSize << endl;	//test
+            //cout << packetSize << endl;	//test
             /*for (int i=0; i<bufferCounter; i++){
                 buffer[i].print();
             }*/
 
         Packet *packet1 = new Packet(packetCounter, packetSize, dataRead);
         	//packet1->print();			//test
-        buffer[packetCounter] = *packet1;
-        	buffer[packetCounter].print();	//test
+        buffer[packetCounter++] = *packet1;
+        	//buffer[packetCounter].print();	//test
 
 
-        packetCounter++;
 
         if(feof(file)){
         	isAlreadyRead = true;
+            buffer[packetCounter] = Packet(2,packetCounter);
         }
     }
     /**==========READ FILE AND STORE TO BUFFER END==========**/

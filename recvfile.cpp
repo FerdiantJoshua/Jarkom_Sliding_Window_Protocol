@@ -23,6 +23,9 @@ int main (int argc, char const *argv[]) {
     int curBuffIdx = 0;
     int lowestBuffIdx = 0;
 
+    //Open File
+    FILE *file = fopen("result.txt"/*filename*/, "wb") ;
+
     // Create UDP socket
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         cout << "Socket creation error" << endl;
@@ -51,6 +54,7 @@ int main (int argc, char const *argv[]) {
             if (DEBUGGING_MODE) { 
                 bufferTemp.print();
             }
+            
             packetSeqNum = bufferTemp.getSeqNum();
             
             /** Send ACK and store to buffer if package is valid, and send NAK if not
@@ -61,6 +65,11 @@ int main (int argc, char const *argv[]) {
                 cout << ">   Package valid, sending ACK " << packetSeqNum << endl;
                 if (sendto(fd, new Ack(1, packetSeqNum), sizeof(Ack), 0, (struct sockaddr *) &remoteAddress, addrlen) < 0) {
                     cout << "   >   Send ACK failed" << endl;
+                }
+
+
+                if(bufferTemp.getSoh() == 2){
+                    break;
                 }
 
                 // Save to buffer if within receiver window
@@ -86,6 +95,18 @@ int main (int argc, char const *argv[]) {
         }
 
     }
+
+    for(int i=0; i<curBuffIdx; i++){
+        if(i<(curBuffIdx-1)){
+            fwrite(buffer[i].getData(), 1, BUFFER_SIZE, file);
+        }else{
+            fwrite(buffer[i].getData(), 1, int(buffer[i].getDataLength()), file);
+        }
+        
+
+    }
+
+    
 
     return 0;
 }

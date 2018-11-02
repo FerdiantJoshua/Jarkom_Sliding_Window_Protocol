@@ -30,7 +30,7 @@ int main(){
         cout << "File opened" << endl;
     }
 
-    while(!isAlreadyRead){
+    while(!isAlreadyRead && (packetCounter < BUFFER_SIZE)){
             cout << "test" << endl;		//test
 
 
