@@ -12,6 +12,23 @@ Conceptually, each portion of the transmission (packets in most data link layers
 
 [Packet loss tools ](https://github.com/alexei-led/pumba) by alexei-led
 
+In this program, sliding window will traverse on the buffered data, and send the packets according to window size. receiver will receive packets and respond by sending ACK or NAK. sender then validate and send next packet if ACK was received or resend the packet loss if NAK was received instead.
+
++ sendfile:
+	1. create socket and bind socket
+	2. read input file
+	3. put to buffer
+	4. send file
+	5. listen to receiver
+	6. slide window
+
++ recvfile:
+	1. open file
+	2. create UDP socket and bind
+	3. listening thread for sender
+	4. send respond
+	5. write packet to file
+	6. slide window
 ---
 
 ## Frame
@@ -25,7 +42,10 @@ Ack | Next Sequence Number|Checksum
 |1 Byte | 4 Byte | 1 Byte | 
 
 ---
-## Compile and Running
+## Makefile
+``` make ```
+
+## Run program
 
 ``` ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port> ```
 <!-- -->
@@ -35,3 +55,8 @@ Ack | Next Sequence Number|Checksum
 > ./recvfile sample.txt 10 1024 8080
  <!-- -->
 > ./sendfile sample.txt 10 1024 127.0.0.1 8080
+
+### Pembagian tugas
+Ferdiant Joshua M.	: sendfile, recvfile, Packet, ACK, UDP socket
+Kevin Basuki 		: Struktur ACK, Packet, readfile(sendfile), writefile(recvfile)
+Nicolaus Boby		: sendfile, recvfile, Packet, ACK, mutex
