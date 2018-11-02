@@ -54,8 +54,8 @@ int main (int argc, char const *argv[]) {
             packetSeqNum = bufferTemp.getSeqNum();
             
             /** Send ACK and store to buffer if package is valid, and send NAK if not
-                   Valid = Ack(1, x)
-                   Invalid = Ack(0, x)
+             *      Valid = Ack(1, x)
+             *      Invalid = Ack(0, x)
             **/
             if (bufferTemp.validate()) {
                 cout << ">   Package valid, sending ACK " << packetSeqNum << endl;
